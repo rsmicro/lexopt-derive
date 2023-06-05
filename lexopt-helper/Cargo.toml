@@ -1,0 +1,9 @@
+[package]
+name = "lexopt-helper"
+license = "BSD-3-Clause"
+version = "0.0.1"
+authors = ["Vincenzo Palazzo <vincenzopalazzo@member.fsf.org>"]
+edition = "2021"
+
+[dependencies]
+lexopt = "0.3.0"

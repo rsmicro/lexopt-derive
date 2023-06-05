@@ -1,0 +1,15 @@
+[package]
+name = "lexopt-derive"
+license = "BSD-3-Clause"
+version = "0.0.1"
+authors = ["Vincenzo Palazzo <vincenzopalazzo@member.fsf.org>"]
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+lexopt-helper = { path = "../lexopt-helper" }
+# FIXME add the parser inside the project, to avoid
+# import procv2
+kproc-parser = "0.0.1-beta.6"
