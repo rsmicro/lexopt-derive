@@ -1,7 +1,7 @@
 use lexopt_derive::{cli, help, Parser, SubCommand};
-use lexopt_helper::prelude::{CLIFlag, CLiCommand};
+use lexopt_helper::prelude::*;
 
-#[derive(Parser)]
+#[derive(Parser, Debug, Default, Clone)]
 #[cli(
     name = "es",
     about = "Just another command to manage the command line arguments",
@@ -10,19 +10,68 @@ use lexopt_helper::prelude::{CLIFlag, CLiCommand};
 )]
 pub struct CliArgs {
     #[subcommand]
-    pub install: Install,
+    pub install: Option<Install>,
     /// verbose flag
     pub verbose: bool,
 }
 
-#[derive(Debug, SubCommand)]
+impl CliArgs {
+    pub fn parse(parser: &mut Parser) -> Result<Self, Error> {
+        let mut install: Option<Install> = None;
+        let mut verbose: Option<bool> = None;
+        while let Some(arg) = parser.next()? {
+            match arg {
+                Long("install") => install = Some(Install::parse(parser)?),
+                Short('v') | Long("verbose") => {
+                    let value: bool = parser.value()?.parse()?;
+                    verbose = Some(value);
+                }
+                Short('h') | Long("help") => {
+                    let cmd = Self::default();
+                    help(Some(cmd.clone()), cmd.subcommands(), cmd.flags::<String>());
+                    std::process::exit(0);
+                }
+                _ => return Err(arg.unexpected()),
+            }
+        }
+        Ok(CliArgs {
+            install,
+            verbose: verbose.unwrap_or_default(),
+        })
+    }
+}
+
+#[derive(Debug, SubCommand, Default, Clone)]
 #[cli(about = "Install somethings, but we do not know what")]
 pub struct Install {
     pub name: String,
 }
 
+impl Install {
+    pub fn parse(parser: &mut Parser) -> Result<Self, Error> {
+        let mut name: Option<String> = None;
+        while let Some(arg) = parser.next()? {
+            match arg {
+                Short('n') | Long("name") => {
+                    let value: String = parser.value()?.parse()?;
+                    name = Some(value);
+                }
+                Short('h') | Long("help") => {
+                    let cmd = Self::default();
+                    help(Some(cmd.clone()), cmd.subcommands(), cmd.flags::<String>());
+                    std::process::exit(0);
+                }
+                _ => return Err(arg.unexpected()),
+            }
+        }
+        Ok(Self {
+            name: name.expect("the name need to be specified"),
+        })
+    }
+}
+
 #[help(CliArgs)]
-fn help<C: CLiCommand, F: CLIFlag>(top_level: Option<C>, sucommands: Vec<C>, flags: Vec<F>) {
+fn help<C: CLiDescription, F: CLIFlag>(top_level: Option<C>, sucommands: Vec<C>, flags: Vec<F>) {
     if let Some(command) = top_level {
         println!("{}   {} ", command.name(), command.description());
         println!();
@@ -41,6 +90,9 @@ fn help<C: CLiCommand, F: CLIFlag>(top_level: Option<C>, sucommands: Vec<C>, fla
     }
 }
 
-fn main() {
-    println!("Hello, world!");
+fn main() -> Result<(), Error> {
+    let mut parser = Parser::from_env();
+    let args = CliArgs::parse(&mut parser)?;
+    println!("{:?}", args);
+    Ok(())
 }
