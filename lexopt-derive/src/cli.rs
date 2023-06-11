@@ -76,12 +76,11 @@ impl std::fmt::Display for CliHelper {
         let self_name = self.name.clone().to_string().replace("\"", "");
         let self_about = self.about.clone();
 
-        let mut code = format!("impl CLiCommand for {ty} {{\n");
+        let mut code = format!("impl CLiDescription for {ty} {{\n");
         code += &format!("fn name(&self) -> String {{ \"{self_name}\".to_string() }}\n");
         code += &format!("fn description(&self) -> String {{ {self_about}.to_string() }}\n");
         code += &format!("fn usage(&self) -> Option<String> {{ Some(\"TODO\".to_string()) }}\n");
-        // TODO: we need to keep track of the flags and commands inside a back
-        code += &format!("fn subcommands<C: CLiCommand>(&self) -> Vec<C> {{ vec![] }}\n");
+        code += &format!("fn subcommands<C: CLiDescription>(&self) -> Vec<C> {{ vec![] }}\n");
         code += &format!("fn flags<F: CLIFlag>(&self) -> Vec<F> {{ vec![] }}\n");
         code += "}";
         write!(f, "{}\n{code}", self.item)
