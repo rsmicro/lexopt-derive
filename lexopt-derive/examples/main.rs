@@ -16,12 +16,13 @@ pub struct CliArgs {
 }
 
 impl CliArgs {
-    pub fn parse(parser: &mut Parser) -> Result<Self, Error> {
+    pub fn parse() -> Result<Self, Error> {
         let mut install: Option<Install> = None;
         let mut verbose: Option<bool> = None;
+
+        let mut parser = Parser::from_env();
         while let Some(arg) = parser.next()? {
-            match arg {
-                Long("install") => install = Some(Install::parse(parser)?),
+            match arg.clone() {
                 Short('v') | Long("verbose") => {
                     let value: bool = parser.value()?.parse()?;
                     verbose = Some(value);
@@ -31,6 +32,14 @@ impl CliArgs {
                     help(Some(cmd.clone()), cmd.subcommands(), cmd.flags::<String>());
                     std::process::exit(0);
                 }
+
+                Value(value) => {
+                    let val = value.as_os_str().to_str().unwrap();
+                    match val {
+                        "install" => install = Some(Install::parse(&mut parser)?),
+                        _ => return Err(arg.unexpected()),
+                    }
+                }
                 _ => return Err(arg.unexpected()),
             }
         }
@@ -39,6 +48,13 @@ impl CliArgs {
             verbose: verbose.unwrap_or_default(),
         })
     }
+}
+
+// FIXME: this should be how we show declare
+// the subcommand
+enum Command {
+    Install { name: String },
+    Hello { name: String },
 }
 
 #[derive(Debug, SubCommand, Default, Clone)]
@@ -91,8 +107,7 @@ fn help<C: CLiDescription, F: CLIFlag>(top_level: Option<C>, sucommands: Vec<C>,
 }
 
 fn main() -> Result<(), Error> {
-    let mut parser = Parser::from_env();
-    let args = CliArgs::parse(&mut parser)?;
+    let args = CliArgs::parse()?;
     println!("{:?}", args);
     Ok(())
 }
