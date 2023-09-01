@@ -1,16 +1,26 @@
 use kproc_parser::kparser::{KParserError, KParserTracer};
 use kproc_parser::proc_macro::TokenStream;
-use kproc_parser::rust::ast_nodes::{FieldToken, StructToken};
+use kproc_parser::rust::ast_nodes::{FieldToken, TopLevelNode};
 use kproc_parser::rust::kparser::RustParser;
-use kproc_parser::trace;
+use kproc_parser::{trace, build_error};
+use proc_macro::TokenTree;
 
 use crate::Tracer;
 
 pub struct ParserInfo {
-    pub subcommands: Vec<FieldToken>,
-    pub flags: Vec<FieldToken>,
+    pub subcommands: Vec<SubCommandInfo>,
+    pub flags: Vec<ArgsInfo>,
     pub custom_help: bool,
     pub custom_parse: bool,
+}
+
+pub struct SubCommandInfo {
+    pub name: TokenTree,
+}
+
+pub struct ArgsInfo {
+    pub long_name: TokenTree,
+    pub short_name: TokenTree,
 }
 
 impl ParserInfo {
@@ -29,7 +39,9 @@ impl std::fmt::Display for ParserInfo {
 pub fn parse(stream: TokenStream) -> TokenStream {
     let tracer = Tracer {};
     let parser = RustParser::with_tracer(&tracer);
-    let ast = parser.parse_struct(&stream);
+    let Ok(ast) = parser.parse(&stream) else {
+        unreachable!()
+    };
     let parser_impl = generate_parser(ast, &tracer);
     if let Err(err) = parser_impl {
         err.emit();
@@ -41,7 +53,7 @@ pub fn parse(stream: TokenStream) -> TokenStream {
 }
 
 pub fn generate_parser<T: KParserTracer>(
-    ast: StructToken,
+    ast: TopLevelNode,
     tracer: &T,
 ) -> Result<ParserInfo, KParserError> {
     let mut info = ParserInfo {
@@ -50,13 +62,31 @@ pub fn generate_parser<T: KParserTracer>(
         custom_help: false,
         custom_parse: false,
     };
-    for field in ast.fields {
-        trace!(tracer, "{field}");
-        if field.attrs.contains_key("subcommand") {
-            info.subcommands.push(field);
-        } else {
-            info.subcommands.push(field);
+    match ast {
+        TopLevelNode::Struct(ast) => {
+            for field in ast.fields {
+                trace!(tracer, "{field}");
+                if field.attrs.contains_key("subcommand") {
+                    info.subcommands.push(SubCommandInfo {
+                        name: field.identifier,
+                    });
+                } else {
+                    // FIXME: we should be able to rename the fields
+                    info.flags.push(ArgsInfo {
+                        long_name: field.identifier.clone(),
+                        short_name: field.identifier,
+                    });
+                }
+            }
         }
+        TopLevelNode::Enum(ast) => {
+            for value in ast.values {
+                info.subcommands.push(SubCommandInfo {
+                    name: value.identifier,
+                })
+            }
+        }
+        _ => unimplemented!(),
     }
     Ok(info)
 }

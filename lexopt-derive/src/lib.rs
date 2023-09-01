@@ -12,7 +12,7 @@ struct Tracer;
 
 impl KParserTracer for Tracer {
     fn log(&self, msg: &str) {
-        eprintln!("|_ {msg}\n");
+        eprintln!("\x1b[93mproc_macro\x1b[0m: {msg}");
     }
 }
 
@@ -26,10 +26,30 @@ pub fn subcommand(tokens: TokenStream) -> TokenStream {
     parser::parse(tokens)
 }
 
+/// cli procedural macro attribute
+///
+/// EXPAND:
+/// ```ignore
+/// pub struct ParserInfo {
+///     name: String,
+///     about: String,
+///     version: String,
+///     author: String,
+///     command_map: HashMap<String, DisplayCommand>,
+/// }
+///
+/// impl ParserInfo {
+///     pub fn new() -> Self {
+///         ParserInfo {
+///             command_map: HashMap::new(),
+///         }
+///     }
+/// }
+/// ````
 #[proc_macro_attribute]
 pub fn cli(attribute: TokenStream, item: TokenStream) -> TokenStream {
     let parser = RustParser::new();
-    // the item is alwayt on a parser struct.
+    // the item is always on a parser struct.
     let ast = parser.parse_struct(&item);
     cli_parser::parse(attribute, ast, item)
 }
