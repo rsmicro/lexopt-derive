@@ -101,10 +101,16 @@ impl CliArgs {
     }
 }
 */
-#[derive(SubCommand, Debug)]
+#[derive(SubCommand, Default, Debug)]
 pub enum Command {
-    Install { name: String },
-    Hello { name: String },
+    Install {
+        name: String,
+    },
+    Hello {
+        name: String,
+    },
+    #[default]
+    Help,
 }
 
 impl Command {
