@@ -1,49 +1,8 @@
-use std::ffi::OsString;
 use std::fmt::Display;
-use std::collections::HashMap;
 
-use lexopt_derive::{Parser, SubCommand};
 use lexopt_derive::cli;
+use lexopt_derive::{Parser, SubCommand};
 use lexopt_helper::prelude::*;
-
-pub struct ParserInfo {
-    command_map: HashMap<String, DisplayCommand>,
-    cmd_parser: Parser,
-}
-
-impl ParserInfo {
-    pub fn new() -> Self {
-        ParserInfo {
-            command_map: HashMap::new(),
-            cmd_parser: Parser::from_env(),
-        }
-    }
-
-    pub fn next(&mut self) -> Result<Option<Arg<'_>>, Error> {
-        self.cmd_parser.next()
-    }
-
-    pub fn value(&mut self) -> Result<OsString, Error> {
-        self.cmd_parser.value()
-    }
-}
-
-#[derive(Clone)]
-pub struct DisplayCommand {
-    pub name: String,
-    pub subcommands: Vec<DisplayCommand>,
-    pub args: Vec<DisplayArg>,
-    pub usage: String,
-    pub description: String,
-}
-
-#[derive(Clone)]
-pub struct DisplayArg {
-    pub optional: bool,
-    pub long_name: String,
-    pub short_name: String,
-    pub description: String,
-}
 
 fn help(
     top_level: Option<DisplayCommand>,
@@ -82,13 +41,10 @@ pub struct CliArgs {
     pub verbose: bool,
 }
 
+/*
 impl CliArgs {
-    pub fn parse() -> Result<Self, Error> {
-        let mut command: Option<Command> = None;
-        let mut verbose: Option<bool> = None;
-
-        let mut parser = ParserInfo::new();
-        parser.command_map.insert(
+    pub fn parse_manual() -> Result<Self, Error> {
+       parser.command_map.insert(
             "@".to_owned(),
             DisplayCommand {
                 name: "ex".to_owned(),
@@ -113,6 +69,7 @@ impl CliArgs {
                 usage: "ex [command] [--[options]]".to_owned(),
                 description: "a description".to_owned(),
             },
+
         );
         while let Some(arg) = parser.next()? {
             match arg.clone() {
@@ -143,7 +100,7 @@ impl CliArgs {
         })
     }
 }
-
+*/
 #[derive(SubCommand, Debug)]
 pub enum Command {
     Install { name: String },

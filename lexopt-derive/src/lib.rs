@@ -8,6 +8,8 @@ mod parser;
 
 use cli as cli_parser;
 
+const TRACER: Tracer = Tracer {};
+
 struct Tracer;
 
 impl KParserTracer for Tracer {
@@ -23,7 +25,7 @@ pub fn parser(tokens: TokenStream) -> TokenStream {
 
 #[proc_macro_derive(SubCommand, attributes(subcommand))]
 pub fn subcommand(tokens: TokenStream) -> TokenStream {
-    parser::parse(tokens)
+    "".parse().unwrap()
 }
 
 /// cli procedural macro attribute
