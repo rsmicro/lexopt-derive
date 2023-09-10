@@ -45,4 +45,12 @@ pub mod prelude {
         pub short_name: String,
         pub description: String,
     }
+
+    pub fn arg_to_string<'a>(arg: Arg<'a>) -> String {
+        match arg {
+            Long(value) => value.to_string(),
+            Short(value) => value.to_string(),
+            Value(value) => value.to_string_lossy().to_string(),
+        }
+    }
 }

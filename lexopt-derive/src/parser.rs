@@ -77,6 +77,7 @@ impl std::fmt::Display for ParserMacroInfo {
         let mut self_new_call = String::new();
         let mut declarations = String::new();
         let mut while_match = String::new();
+        let mut check_subcommand = String::new();
         for subcommands in self.subcommands.iter() {
             let identifier = subcommands.name.clone();
             let ty = subcommands.ty.clone();
@@ -84,7 +85,12 @@ impl std::fmt::Display for ParserMacroInfo {
             new_params += &format!("{identifier}: {ty},");
             self_assign += &format!("{identifier}: {identifier},");
             // FIXME: there is a way to improve the unwrap or default?
-            self_new_call += &format!("{identifier}.unwrap_or_default(),");
+            self_new_call += &format!("{identifier}.unwrap(),");
+            check_subcommand += &format!(
+                "if {ty}::is_this_subcommad(val) {{
+                                    {identifier} = Some({ty}::parse(&mut parser, val)?);
+                                }}\n"
+            );
         }
         for flag in self.flags.iter() {
             let identifier = flag.long_name.clone();
@@ -118,17 +124,26 @@ impl std::fmt::Display for ParserMacroInfo {
                             let mut parser = ParserInfo::new();
                             {declarations}
 
-                            while let Some(arg) = parser.next()? {{
+                            loop {{
+                                 let Some(ref arg) = parser.next()? else {{ break; }};
                                  println!(\"{{:?}}\",arg);
                                  match arg.clone() {{
                                       {while_match}
-                                      _ => return Err(arg.unexpected()),
+                                      Value(value) => {{
+                                            let val = value.as_os_str().to_str().unwrap();
+                                            {check_subcommand}
+                                      }}
+                                      _ => {{
+                                            return Err(arg.clone().unexpected())
+                                        }}
                                   }}
                             }}
 
+                            println!(\"end parsing subcommand\");
                             Ok(Self::new({self_new_call}))
                           }}"
         );
+        eprintln!("******* {code}");
         code += "}"; // close the impl
         writeln!(f, "{code}")
     }

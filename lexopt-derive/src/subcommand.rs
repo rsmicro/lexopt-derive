@@ -47,17 +47,59 @@ impl fmt::Display for SubCommandMacroInfo {
         let idetifier = self.identifier.clone().unwrap();
         let mut match_body = String::new();
         let mut subcommands_fn = String::new();
+        let mut subcommands_names = String::new();
         for subcommand in self.subcommand.iter() {
+            let subcommand_name = subcommand.identifier.to_string();
             let identifier = subcommand.identifier.to_string().to_lowercase();
             match_body += &format!("\"{identifier}\" => Self::parse_{identifier}(parser),\n");
 
+            let mut while_match = String::new();
+            let mut declarations = String::new();
+            let mut new_params = String::new();
+            let mut self_assign = String::new();
+            let mut self_new_call = String::new();
+            // FIXME: Parse the subcommands
+            for flag in subcommand.fields.iter() {
+                let identifier = flag.long_name.clone();
+                let ty = flag.ty.clone();
+                declarations += &format!("let mut {identifier}: Option<{ty}> = None;\n");
+                new_params += &format!("{identifier}: {ty},");
+                self_assign += &format!("{identifier}: {identifier},");
+                self_new_call += &format!("{identifier}: {identifier}.unwrap_or_default(),");
+                while_match += &format!(
+                    "Long(\"{identifier}\") => {{
+                        println!(\"match in the subcommand\");
+                        let value: {ty} = parser.value()?.parse()?;
+                        {identifier} = Some(value);
+                    }}\n"
+                );
+                // if the short name is specified, add it to the match
+                if let Some(ref short_name) = flag.short_name {
+                    while_match = format!("Short(\"{short_name}\") | {while_match}");
+                }
+            }
+
             // TODO: this needs to be move in another function
-            subcommands_fn += &format!(
-                "pub fn parse_{identifier}(parser: &mut ParserInfo) -> Result<Self, Error> {{
-                                            unimplemented!()
-                                      }}\n"
-            );
+            subcommands_fn += &format!("pub fn parse_{identifier}(parser: &mut ParserInfo) -> Result<Self, Error> {{
+                                                {declarations}
+                                                loop {{
+                                                    let Some(ref arg) = parser.next()? else {{ break; }};
+                                                    println!(\"{{:?}}\", arg);
+                                                    match arg.clone() {{
+                                                        {while_match}
+                                                        _ => return Err(arg.clone().unexpected()),
+                                                    }}
+                                                }}
+
+                                    println!(\"returning parsered subcommand\");
+                               Ok(Self::{subcommand_name}{{ {self_new_call}  }})
+                                        }}\n");
+            subcommands_names += &format!("\"{identifier}\",");
         }
+        let subcommands_names = subcommands_names
+            .strip_suffix(",")
+            .unwrap_or(&subcommands_fn);
+
         let code = format!("impl {idetifier} {{\n
                                     pub fn parse<T: Display + ?Sized>(parser: &mut ParserInfo, cmd_val: &T) -> Result<Self, Error> {{
                                             match cmd_val.to_string().as_str() {{
@@ -66,6 +108,9 @@ impl fmt::Display for SubCommandMacroInfo {
                                             }}
                                     }}
 
+                                    pub fn is_this_subcommad<T: Display + ?Sized>(arg: &T) -> bool {{
+                                       [{subcommands_names}].contains(&arg.to_string().as_str())
+                                    }}
                                     {subcommands_fn}
                         }}");
         writeln!(f, "{code}")

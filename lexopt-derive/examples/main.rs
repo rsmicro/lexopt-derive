@@ -41,16 +41,10 @@ pub struct CliArgs {
     pub verbose: bool,
 }
 
-#[derive(SubCommand, Default, Debug)]
+#[derive(SubCommand, Debug)]
 pub enum Command {
-    Install {
-        name: String,
-    },
-    Hello {
-        name: String,
-    },
-    #[default]
-    Help,
+    Install { name: String },
+    Hello { name: String },
 }
 
 impl Command {
