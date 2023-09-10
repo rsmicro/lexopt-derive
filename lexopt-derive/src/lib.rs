@@ -5,6 +5,7 @@ use kproc_parser::rust::kparser::RustParser;
 mod cli;
 mod help;
 mod parser;
+mod subcommand;
 
 use cli as cli_parser;
 
@@ -18,6 +19,17 @@ impl KParserTracer for Tracer {
     }
 }
 
+pub(crate) mod macros {
+    macro_rules! build_parser {
+        ($tracer:expr) => {{
+            use kproc_parser::rust::kparser::RustParser;
+
+            RustParser::with_tracer(&$tracer)
+        }};
+    }
+    pub(crate) use build_parser;
+}
+
 #[proc_macro_derive(Parser, attributes(subcommand))]
 pub fn parser(tokens: TokenStream) -> TokenStream {
     parser::parse(tokens)
@@ -25,7 +37,7 @@ pub fn parser(tokens: TokenStream) -> TokenStream {
 
 #[proc_macro_derive(SubCommand, attributes(subcommand))]
 pub fn subcommand(tokens: TokenStream) -> TokenStream {
-    "".parse().unwrap()
+    subcommand::parse(tokens)
 }
 
 /// cli procedural macro attribute

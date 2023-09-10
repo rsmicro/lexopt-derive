@@ -2,16 +2,10 @@ use kproc_parser::kparser::{KParserError, KParserTracer};
 use kproc_parser::proc_macro::TokenStream;
 use kproc_parser::proc_macro::TokenTree;
 use kproc_parser::rust::ast_nodes::TopLevelNode;
-use kproc_parser::rust::kparser::RustParser;
 use kproc_parser::trace;
 
+use crate::macros::build_parser;
 use crate::TRACER;
-
-macro_rules! build_parser {
-    ($tracer:expr) => {
-        RustParser::with_tracer(&$tracer)
-    };
-}
 
 pub struct ParserMacroInfo {
     pub identifier: Option<TokenTree>,
@@ -28,7 +22,7 @@ pub struct SubCommandInfo {
 
 pub struct ArgsInfo {
     pub ty: TokenTree,
-    pub long_name: TokenTree,
+    pub long_name: String,
     pub short_name: Option<TokenTree>,
 }
 
@@ -38,6 +32,36 @@ impl ParserMacroInfo {
     }
 }
 
+// FIXME: This needs to manage the commands info inside a symbol table
+// An example of this?
+//
+//       parser.command_map.insert(
+//            "@".to_owned(),
+//            DisplayCommand {
+//                name: "ex".to_owned(),
+//                subcommands: vec![DisplayCommand {
+//                    name: "install".to_owned(),
+//                    subcommands: vec![],
+//                    args: vec![DisplayArg {
+//                        long_name: "name".to_owned(),
+//                        short_name: "n".to_owned(),
+//                        optional: true,
+//                        description: String::new(),
+//                    }],
+//                    usage: "Random usage".to_owned(),
+//                    description: "random description".to_owned(),
+//                }],
+//                args: vec![DisplayArg {
+//                    description: "verbose".to_owned(),
+//                    optional: true,
+//                    long_name: "verbose".to_owned(),
+//                    short_name: "v".to_owned(),
+//                }],
+//                usage: "ex [command] [--[options]]".to_owned(),
+//                description: "a description".to_owned(),
+//            },
+//
+//        );
 impl std::fmt::Display for ParserMacroInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut code = r#"
@@ -178,7 +202,8 @@ pub fn generate_parser<T: KParserTracer>(
                         // FIXME: the ty is more complex, we are missing the
                         // generics
                         ty: field.ty.identifier,
-                        long_name: field.identifier.clone(),
+                        // FIXME: this should store the information as TokenTree
+                        long_name: field.identifier.to_string(),
                         short_name: None,
                     });
                 }

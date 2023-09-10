@@ -41,66 +41,6 @@ pub struct CliArgs {
     pub verbose: bool,
 }
 
-/*
-impl CliArgs {
-    pub fn parse_manual() -> Result<Self, Error> {
-       parser.command_map.insert(
-            "@".to_owned(),
-            DisplayCommand {
-                name: "ex".to_owned(),
-                subcommands: vec![DisplayCommand {
-                    name: "install".to_owned(),
-                    subcommands: vec![],
-                    args: vec![DisplayArg {
-                        long_name: "name".to_owned(),
-                        short_name: "n".to_owned(),
-                        optional: true,
-                        description: String::new(),
-                    }],
-                    usage: "Random usage".to_owned(),
-                    description: "random description".to_owned(),
-                }],
-                args: vec![DisplayArg {
-                    description: "verbose".to_owned(),
-                    optional: true,
-                    long_name: "verbose".to_owned(),
-                    short_name: "v".to_owned(),
-                }],
-                usage: "ex [command] [--[options]]".to_owned(),
-                description: "a description".to_owned(),
-            },
-
-        );
-        while let Some(arg) = parser.next()? {
-            match arg.clone() {
-                Short('v') | Long("verbose") => {
-                    let value: bool = parser.value()?.parse()?;
-                    verbose = Some(value);
-                }
-                Short('h') | Long("help") => {
-                    let cmd = parser.command_map.get("@").unwrap();
-                    help(
-                        Some(cmd.to_owned()),
-                        cmd.subcommands.clone(),
-                        cmd.args.clone(),
-                    );
-                    std::process::exit(0);
-                }
-
-                Value(value) => {
-                    let val = value.as_os_str().to_str().unwrap();
-                    command = Some(Command::parse(&mut parser, val)?)
-                }
-                _ => return Err(arg.unexpected()),
-            }
-        }
-        Ok(CliArgs {
-            command: command.unwrap(),
-            verbose: verbose.unwrap_or_default(),
-        })
-    }
-}
-*/
 #[derive(SubCommand, Default, Debug)]
 pub enum Command {
     Install {
@@ -114,30 +54,7 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn parse<T: Display + ?Sized>(parser: &mut ParserInfo, cmd_val: &T) -> Result<Self, Error> {
-        parser.command_map.insert(
-            "install".to_owned(),
-            DisplayCommand {
-                name: "install".to_owned(),
-                subcommands: vec![],
-                args: vec![DisplayArg {
-                    long_name: "name".to_owned(),
-                    short_name: "n".to_owned(),
-                    optional: true,
-                    description: String::new(),
-                }],
-                usage: "Random usage".to_owned(),
-                description: "random description".to_owned(),
-            },
-        );
-        match cmd_val.to_string().as_str() {
-            "install" => Self::parse_install(parser),
-            "hello" => Self::parse_hello(parser),
-            _ => unreachable!(),
-        }
-    }
-
-    fn parse_install(parser: &mut ParserInfo) -> Result<Self, Error> {
+    fn parse_install_old(parser: &mut ParserInfo) -> Result<Self, Error> {
         let mut name: Option<String> = None;
         while let Some(arg) = parser.next()? {
             match arg.clone() {
@@ -160,10 +77,6 @@ impl Command {
         Ok(Self::Hello {
             name: name.unwrap_or_default(),
         })
-    }
-
-    fn parse_hello(_: &mut ParserInfo) -> Result<Self, Error> {
-        unimplemented!()
     }
 }
 
