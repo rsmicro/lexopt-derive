@@ -1,7 +1,33 @@
-use lexopt_derive::{cli, help, Parser, SubCommand};
+use std::fmt::Display;
+
+use lexopt_derive::cli;
+use lexopt_derive::{Parser, SubCommand};
 use lexopt_helper::prelude::*;
 
-#[derive(Parser, Debug, Default, Clone)]
+fn help(
+    top_level: Option<DisplayCommand>,
+    sucommands: Vec<DisplayCommand>,
+    flags: Vec<DisplayArg>,
+) {
+    if let Some(command) = top_level {
+        println!("{}   {} ", command.name, command.description);
+        println!();
+        println!("TODO add usage example");
+    }
+    for command in sucommands {
+        println!();
+        println!("  {}        {}", command.name, command.description);
+        help(None, command.subcommands, command.args.clone());
+    }
+
+    for flag in flags {
+        println!();
+        println!();
+        println!("-{} | --{}", flag.long_name, flag.short_name);
+    }
+}
+
+#[derive(Parser, Debug)]
 #[cli(
     name = "es",
     about = "Just another command to manage the command line arguments",
@@ -10,89 +36,46 @@ use lexopt_helper::prelude::*;
 )]
 pub struct CliArgs {
     #[subcommand]
-    pub install: Option<Install>,
+    pub command: Command,
     /// verbose flag
     pub verbose: bool,
 }
 
-impl CliArgs {
-    pub fn parse(parser: &mut Parser) -> Result<Self, Error> {
-        let mut install: Option<Install> = None;
-        let mut verbose: Option<bool> = None;
-        while let Some(arg) = parser.next()? {
-            match arg {
-                Long("install") => install = Some(Install::parse(parser)?),
-                Short('v') | Long("verbose") => {
-                    let value: bool = parser.value()?.parse()?;
-                    verbose = Some(value);
-                }
-                Short('h') | Long("help") => {
-                    let cmd = Self::default();
-                    help(Some(cmd.clone()), cmd.subcommands(), cmd.flags::<String>());
-                    std::process::exit(0);
-                }
-                _ => return Err(arg.unexpected()),
-            }
-        }
-        Ok(CliArgs {
-            install,
-            verbose: verbose.unwrap_or_default(),
-        })
-    }
+#[derive(SubCommand, Debug)]
+pub enum Command {
+    Install { name: String },
+    Hello { name: String },
 }
 
-#[derive(Debug, SubCommand, Default, Clone)]
-#[cli(about = "Install somethings, but we do not know what")]
-pub struct Install {
-    pub name: String,
-}
-
-impl Install {
-    pub fn parse(parser: &mut Parser) -> Result<Self, Error> {
+impl Command {
+    fn parse_install_old(parser: &mut ParserInfo) -> Result<Self, Error> {
         let mut name: Option<String> = None;
         while let Some(arg) = parser.next()? {
-            match arg {
+            match arg.clone() {
                 Short('n') | Long("name") => {
                     let value: String = parser.value()?.parse()?;
                     name = Some(value);
                 }
                 Short('h') | Long("help") => {
-                    let cmd = Self::default();
-                    help(Some(cmd.clone()), cmd.subcommands(), cmd.flags::<String>());
+                    let cmd = parser.command_map.get("install").unwrap();
+                    help(
+                        Some(cmd.to_owned()),
+                        cmd.subcommands.clone(),
+                        cmd.args.clone(),
+                    );
                     std::process::exit(0);
                 }
                 _ => return Err(arg.unexpected()),
             }
         }
-        Ok(Self {
-            name: name.expect("the name need to be specified"),
+        Ok(Self::Hello {
+            name: name.unwrap_or_default(),
         })
     }
 }
 
-#[help(CliArgs)]
-fn help<C: CLiDescription, F: CLIFlag>(top_level: Option<C>, sucommands: Vec<C>, flags: Vec<F>) {
-    if let Some(command) = top_level {
-        println!("{}   {} ", command.name(), command.description());
-        println!();
-        println!("TODO add usage example");
-    }
-    for command in sucommands {
-        println!();
-        println!("  {}        {}", command.name(), command.description());
-        help(None, command.subcommands::<C>(), command.flags::<F>());
-    }
-
-    for flag in flags {
-        println!();
-        println!();
-        println!("-{} | --{}", flag.short(), flag.long());
-    }
-}
-
 fn main() -> Result<(), Error> {
-    let mut parser = Parser::from_env();
-    let args = CliArgs::parse(&mut parser)?;
+    let args = CliArgs::parse()?;
     println!("{:?}", args);
     Ok(())
 }

@@ -70,20 +70,7 @@ impl CliHelper {
 
 impl std::fmt::Display for CliHelper {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let ty = self.on_ty.clone().expect("a type should be specified");
-        // We to strip the `"` because not the same of the struct is not
-        // a string token.
-        let self_name = self.name.clone().to_string().replace("\"", "");
-        let self_about = self.about.clone();
-
-        let mut code = format!("impl CLiDescription for {ty} {{\n");
-        code += &format!("fn name(&self) -> String {{ \"{self_name}\".to_string() }}\n");
-        code += &format!("fn description(&self) -> String {{ {self_about}.to_string() }}\n");
-        code += &format!("fn usage(&self) -> Option<String> {{ Some(\"TODO\".to_string()) }}\n");
-        code += &format!("fn subcommands<C: CLiDescription>(&self) -> Vec<C> {{ vec![] }}\n");
-        code += &format!("fn flags<F: CLIFlag>(&self) -> Vec<F> {{ vec![] }}\n");
-        code += "}";
-        write!(f, "{}\n{code}", self.item)
+        write!(f, "{}", self.item)
     }
 }
 

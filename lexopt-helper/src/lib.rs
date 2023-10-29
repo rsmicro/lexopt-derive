@@ -1,27 +1,56 @@
 pub mod prelude {
     pub use lexopt::prelude::*;
-    pub use lexopt::*;
+    pub use lexopt::Arg;
+    pub use lexopt::Error;
+    pub use lexopt::Parser as LexParser;
 
-    pub trait CLiDescription {
-        fn name(&self) -> String;
-        fn description(&self) -> String;
-        fn usage(&self) -> Option<String>;
-        fn subcommands<C: CLiDescription>(&self) -> Vec<C>;
-        fn flags<F: CLIFlag>(&self) -> Vec<F>;
+    use std::collections::HashMap;
+    use std::ffi::OsString;
+
+    pub struct ParserInfo {
+        pub command_map: HashMap<String, DisplayCommand>,
+        cmd_parser: LexParser,
     }
 
-    pub trait CLIFlag {
-        fn long(&self) -> String;
-        fn short(&self) -> String;
-    }
-
-    impl CLIFlag for String {
-        fn long(&self) -> String {
-            unimplemented!()
+    impl ParserInfo {
+        pub fn new() -> Self {
+            ParserInfo {
+                command_map: HashMap::new(),
+                cmd_parser: LexParser::from_env(),
+            }
         }
 
-        fn short(&self) -> String {
-            unimplemented!()
+        pub fn next(&mut self) -> Result<Option<Arg<'_>>, Error> {
+            self.cmd_parser.next()
+        }
+
+        pub fn value(&mut self) -> Result<OsString, Error> {
+            self.cmd_parser.value()
+        }
+    }
+
+    #[derive(Clone)]
+    pub struct DisplayCommand {
+        pub name: String,
+        pub subcommands: Vec<DisplayCommand>,
+        pub args: Vec<DisplayArg>,
+        pub usage: String,
+        pub description: String,
+    }
+
+    #[derive(Clone)]
+    pub struct DisplayArg {
+        pub optional: bool,
+        pub long_name: String,
+        pub short_name: String,
+        pub description: String,
+    }
+
+    pub fn arg_to_string<'a>(arg: Arg<'a>) -> String {
+        match arg {
+            Long(value) => value.to_string(),
+            Short(value) => value.to_string(),
+            Value(value) => value.to_string_lossy().to_string(),
         }
     }
 }
